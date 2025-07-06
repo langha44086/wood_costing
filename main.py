@@ -7,7 +7,7 @@ from reports.report_generator import ReportGenerator
 
 DATA_DIR = "data"
 
-@st.cache_data
+# Đọc dữ liệu từ CSV (không dùng cache)
 def load_dataframes():
     bom = pd.read_csv(f"{DATA_DIR}/bom.csv")
     materials_prices_df = pd.read_csv(f"{DATA_DIR}/materials_prices.csv")
@@ -15,6 +15,7 @@ def load_dataframes():
     actual_costs_df = pd.read_csv(f"{DATA_DIR}/actual_costs.csv")
     return bom, materials_prices_df, labor_costs_df, actual_costs_df
 
+# Ghi thêm dòng dữ liệu vào file CSV
 def append_to_csv(file_path, row_dict):
     df = pd.read_csv(file_path)
     df = pd.concat([df, pd.DataFrame([row_dict])], ignore_index=True)
@@ -23,8 +24,10 @@ def append_to_csv(file_path, row_dict):
 st.set_page_config(page_title="Wood Costing System", layout="wide")
 st.title("📈 Hệ thống tính giá thành sản phẩm gỗ và nội thất")
 
+# Load dữ liệu mới mỗi lần chạy
 bom_df, materials_df, labor_df, actual_df = load_dataframes()
 
+# Tạo dict để tính toán
 material_prices = materials_df.set_index("material")["price"].to_dict()
 labor_costs = labor_df.set_index("product_id")["labor_cost"].to_dict()
 actual_costs = actual_df.set_index("product_id")["actual_cost"].to_dict()
@@ -32,10 +35,12 @@ products = bom_df["product_id"].unique()
 
 selected_product = st.selectbox("Chọn mã sản phẩm:", products)
 
+# Tính giá thành
 calculator = CostCalculator(bom_df, material_prices, labor_costs)
 standard_cost = calculator.calculate_cost(selected_product)
 actual_cost = actual_costs.get(selected_product, 0)
 
+# Phân tích chênh lệch
 analyzer = VarianceAnalyzer()
 variance = analyzer.analyze(actual_cost, standard_cost)
 
@@ -72,6 +77,7 @@ with st.expander("📊 Xem dữ liệu hiện tại"):
 st.markdown("---")
 st.header("🆕 Thêm dữ liệu mới")
 
+# === Thêm BOM ===
 with st.expander("➕ Thêm định mức nguyên vật liệu"):
     with st.form("add_bom"):
         bom_pid = st.text_input("Mã sản phẩm")
@@ -81,8 +87,9 @@ with st.expander("➕ Thêm định mức nguyên vật liệu"):
             append_to_csv(f"{DATA_DIR}/bom.csv", {
                 "product_id": bom_pid, "material": bom_material, "quantity": bom_qty
             })
-            st.success("Đã thêm định mức mới!")
+            st.success("✅ Đã thêm định mức mới! Vui lòng tải lại trang để xem cập nhật.")
 
+# === Thêm giá nguyên vật liệu ===
 with st.expander("➕ Thêm giá nguyên vật liệu"):
     with st.form("add_material_price"):
         mat_name = st.text_input("Tên nguyên vật liệu")
@@ -91,8 +98,9 @@ with st.expander("➕ Thêm giá nguyên vật liệu"):
             append_to_csv(f"{DATA_DIR}/materials_prices.csv", {
                 "material": mat_name, "price": mat_price
             })
-            st.success("Đã thêm giá nguyên vật liệu!")
+            st.success("✅ Đã thêm giá nguyên vật liệu! Vui lòng tải lại trang để xem cập nhật.")
 
+# === Thêm chi phí nhân công ===
 with st.expander("➕ Thêm chi phí nhân công"):
     with st.form("add_labor_cost"):
         labor_pid = st.text_input("Mã sản phẩm")
@@ -101,8 +109,9 @@ with st.expander("➕ Thêm chi phí nhân công"):
             append_to_csv(f"{DATA_DIR}/labor_costs.csv", {
                 "product_id": labor_pid, "labor_cost": labor_cost
             })
-            st.success("Đã thêm chi phí nhân công!")
+            st.success("✅ Đã thêm chi phí nhân công! Vui lòng tải lại trang để xem cập nhật.")
 
+# === Thêm chi phí thực tế ===
 with st.expander("➕ Thêm chi phí thực tế"):
     with st.form("add_actual_cost"):
         act_pid = st.text_input("Mã sản phẩm")
@@ -111,4 +120,4 @@ with st.expander("➕ Thêm chi phí thực tế"):
             append_to_csv(f"{DATA_DIR}/actual_costs.csv", {
                 "product_id": act_pid, "actual_cost": act_cost
             })
-            st.success("Đã thêm chi phí thực tế!")
+            st.success("✅ Đã thêm chi phí thực tế! Vui lòng tải lại trang để xem cập nhật.")
